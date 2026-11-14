@@ -1,0 +1,79 @@
+// Shared score store for the co-trainer scoring page.
+// GET  /api/scores           -> { scores: { "<team-slug>_r<n>": record, ... } }
+// POST /api/scores  {record} -> { ok: true, key }
+// DELETE /api/scores?key=... -> { ok: true }   (requires ADMIN_KEY if set)
+//
+// Storage: one Redis hash in Upstash, via its REST API (no npm packages).
+// Vercel's Upstash integration sets KV_REST_API_URL / KV_REST_API_TOKEN;
+// UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN also work.
+
+const HASH = process.env.SCORES_HASH || 'velera:scores';
+const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+async function redis(cmd) {
+  const r = await fetch(URL_, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify(cmd),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error(j.error || 'redis ' + r.status);
+  return j.result;
+}
+
+const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+const int = (v, lo, hi) => { v = Math.round(Number(v)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo; };
+
+function clean(b) {
+  if (!b || typeof b !== 'object') return null;
+  const slug = str(b.slug, 60).toLowerCase();
+  const round = int(b.round, 1, 9);
+  if (!/^[a-z0-9-]+$/.test(slug) || !b.team) return null;
+  const vals = Array.isArray(b.vals) ? b.vals.slice(0, 10).map(v => int(v, 0, 2)) : [];
+  if (!vals.length) return null;
+  const total = vals.reduce((a, c) => a + c, 0);
+  return {
+    team: str(b.team, 60), slug, round, title: str(b.title, 60), vals, total,
+    max: vals.length * 2, ending: str(b.ending, 20), note: str(b.note, 600),
+    by: str(b.by, 60) || 'Co-trainer', updated: Date.now(),
+  };
+}
+
+module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!URL_ || !TOKEN) {
+    return res.status(503).json({ error: 'not_configured', message: 'Connect an Upstash Redis store to this Vercel project.' });
+  }
+  try {
+    if (req.method === 'GET') {
+      const flat = (await redis(['HGETALL', HASH])) || [];
+      const scores = {};
+      for (let i = 0; i < flat.length; i += 2) {
+        try { scores[flat[i]] = JSON.parse(flat[i + 1]); } catch (e) {}
+      }
+      return res.status(200).json({ scores });
+    }
+    if (req.method === 'POST') {
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }
+      const rec = clean(body);
+      if (!rec) return res.status(400).json({ error: 'bad_record' });
+      const key = rec.slug + '_r' + rec.round;
+      await redis(['HSET', HASH, key, JSON.stringify(rec)]);
+      return res.status(200).json({ ok: true, key, record: rec });
+    }
+    if (req.method === 'DELETE') {
+      const admin = process.env.ADMIN_KEY;
+      if (!admin || req.headers['x-admin-key'] !== admin) return res.status(403).json({ error: 'forbidden' });
+      const key = str(req.query && req.query.key, 80);
+      if (key === '*') await redis(['DEL', HASH]);
+      else await redis(['HDEL', HASH, key]);
+      return res.status(200).json({ ok: true });
+    }
+    res.setHeader('Allow', 'GET, POST, DELETE');
+    return res.status(405).json({ error: 'method_not_allowed' });
+  } catch (e) {
+    return res.status(502).json({ error: 'store_error', message: String(e.message || e) });
+  }
+};
