@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Velera · Co-trainer Scoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0D1813; --panel:#15241D; --panel2:#1B2F26; --line:rgba(255,255,255,.075);
+  --line2:rgba(255,255,255,.045); --ink:#F3F6F4; --mid:#BCC9C2; --muted:#8C9A93;
+  --gold:#D6B268; --gold-lt:#F0E0B8; --deep:#0A130F;
+  --ok:#57C79B; --okbg:rgba(87,199,155,.13);
+  --warn:#E3B95F; --warnbg:rgba(227,185,95,.14);
+  --bad:#F08A76; --badbg:rgba(240,138,118,.13);
+  --r:14px; --sh:0 1px 1px rgba(0,0,0,.2), 0 12px 34px rgba(0,0,0,.34);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:auto}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter",Arial,Helvetica,sans-serif;
+  font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
+button,input,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{margin:0}
+.top{background:var(--deep);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.top .in{max-width:1060px;margin:0 auto;padding:14px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand b{font-size:15px;font-weight:700;letter-spacing:.06em}
+.brand i{font-style:normal;display:block;color:var(--gold);font-size:10px;font-weight:600;letter-spacing:.16em;margin-top:1px}
+.sp{flex:1}
+.tot{text-align:right}
+.tot b{display:block;font-size:26px;font-weight:700;color:var(--gold);line-height:1}
+.tot small{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:8px}
+.tb{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:99px;padding:7px 16px;
+  font-size:14px;font-weight:500;color:var(--mid);transition:all .18s}
+.tb:hover{border-color:var(--gold);color:var(--ink)}
+.tb.on{background:var(--gold);border-color:var(--gold);color:#0A130F;font-weight:600}
+main{max-width:1060px;margin:0 auto;padding:34px 26px 90px}
+.sect{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);
+  margin-bottom:22px;overflow:hidden}
+.card>header{padding:20px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line2)}
+.card>header h3{font-size:20px;font-weight:600;letter-spacing:-.01em}
+.bd{padding:24px}
+.ft{padding:18px 24px;border-top:1px solid var(--line2);background:rgba(0,0,0,.14);
+  display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.pill{font-size:11.5px;font-weight:700;letter-spacing:.09em;padding:6px 13px;border-radius:99px;text-transform:uppercase;margin-left:auto}
+.pw{background:var(--warnbg);color:var(--warn)}.po{background:var(--okbg);color:var(--ok)}
+.btn{background:var(--gold);color:#0A130F;border:0;padding:13px 26px;border-radius:10px;font-size:15px;
+  font-weight:600;box-shadow:0 6px 18px rgba(214,178,104,.2);transition:transform .16s,filter .2s}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.btn2{background:transparent;color:var(--gold);border:1px solid rgba(214,178,104,.55);padding:12px 22px;border-radius:10px;
+  font-size:15px;font-weight:600;transition:all .16s}
+.btn2:hover{background:rgba(214,178,104,.1);border-color:var(--gold)}
+.btn2:disabled{opacity:.45;cursor:default;background:transparent}
+.restore{display:none;background:var(--panel);border:1px solid rgba(214,178,104,.4);border-radius:var(--r);
+  box-shadow:var(--sh);margin-bottom:22px;overflow:hidden}
+.restore.open{display:block}
+.restore h3{font-size:18px;font-weight:600;padding:18px 22px;border-bottom:1px solid var(--line2);display:flex;align-items:center}
+.restore h3 button{margin-left:auto;background:none;border:0;color:var(--muted);font-size:22px;line-height:1;padding:0 4px}
+.ro{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:16px 22px}
+.ro+.ro{border-top:1px solid var(--line2)}
+.ro b{display:block;font-size:15.5px;font-weight:600}
+.ro span{font-size:14px;color:var(--muted)}
+.rmsg{margin:0;padding:0 22px 16px;font-size:14.5px;font-weight:600}
+.rmsg:empty{display:none}
+@media(max-width:760px){.ro{grid-template-columns:1fr}.ro .btn2{justify-self:start}}
+.hint{color:var(--mid);font-size:15px}
+label.f{display:block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:9px}
+input[type=text],textarea{width:100%;padding:13px 15px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(0,0,0,.2);color:var(--ink);transition:border-color .18s,box-shadow .18s}
+input:focus,textarea:focus{outline:0;border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,178,104,.16)}
+textarea{min-height:84px;resize:vertical;line-height:1.6}
+::placeholder{color:var(--muted);opacity:.75}
+/* team picker */
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:30px}
+.team{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;text-align:left;
+  box-shadow:var(--sh);transition:all .18s}
+.team:hover{border-color:var(--gold);transform:translateY(-1px)}
+.team.on{border-color:var(--gold);background:linear-gradient(180deg,#223B2F,#1A2E25);
+  box-shadow:0 0 0 1px rgba(214,178,104,.35),0 14px 32px rgba(0,0,0,.4)}
+.team b{display:block;font-size:18px;font-weight:600}
+.team i{display:block;font-style:normal;font-size:12px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--gold);margin-top:6px}
+/* element with three described options */
+.el{padding:22px 0}
+.el+.el{border-top:1px solid var(--line2)}
+.elh{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.elh b{font-size:18px;font-weight:600}
+.elh span{font-size:14px;color:var(--muted)}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:760px){.opts{grid-template-columns:1fr}}
+.opt{background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:12px;padding:16px 16px 18px;
+  text-align:left;display:flex;gap:13px;align-items:flex-start;transition:all .16s}
+.opt:hover{border-color:rgba(214,178,104,.55)}
+.opt .n{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:15px;font-weight:700;color:var(--muted);flex:0 0 auto}
+.opt span{font-size:14.5px;line-height:1.5;color:var(--mid)}
+.opt.on{background:rgba(214,178,104,.12);border-color:var(--gold)}
+.opt.on .n{background:var(--gold);border-color:var(--gold);color:#0A130F}
+.opt.on span{color:var(--ink)}
+.cap{background:var(--warnbg);border-left:3px solid var(--warn);border-radius:0 10px 10px 0;
+  padding:14px 18px;font-size:14.5px;color:var(--mid);margin-top:4px}
+.cap b{color:var(--warn)}
+/* results */
+#results{display:none}
+.board{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);
+  overflow:hidden;margin-bottom:30px}
+.lh,.ln{display:grid;grid-template-columns:44px minmax(110px,1.2fr) repeat(3,minmax(92px,1fr)) minmax(120px,1.3fr);
+  gap:14px;align-items:center;padding:14px 22px}
+.lh{font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  background:rgba(0,0,0,.18);border-bottom:1px solid var(--line2);padding-top:11px;padding-bottom:11px}
+.ln+.ln{border-top:1px solid var(--line2)}
+.ln.lead{background:linear-gradient(90deg,rgba(214,178,104,.13),transparent 70%)}
+.rk{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;
+  background:rgba(255,255,255,.06);color:var(--mid);border:1px solid var(--line)}
+.rk.g1{background:var(--gold);border-color:var(--gold);color:#0A130F}
+.rk.g2{background:rgba(214,178,104,.28);border-color:rgba(214,178,104,.5);color:var(--gold-lt)}
+.rk.g3{background:rgba(214,178,104,.14);border-color:rgba(214,178,104,.3);color:var(--gold)}
+.tm b{display:block;font-size:17px;font-weight:600;line-height:1.3}
+.tm i{font-style:normal;font-size:12.5px;color:var(--muted)}
+.rd{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.rd small{display:none;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sc{display:flex;align-items:center;gap:12px}
+.bar{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.bar span{display:block;height:100%;border-radius:99px;background:var(--gold)}
+.sc b{font-size:20px;font-weight:700;color:var(--ink);min-width:58px;text-align:right;font-variant-numeric:tabular-nums}
+.sc b em{font-style:normal;font-size:13px;font-weight:500;color:var(--muted)}
+.ln.none .tm b,.ln.none .sc b{color:var(--muted)}
+.lines{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.li{display:grid;grid-template-columns:150px 1fr auto;gap:16px;align-items:baseline;padding:13px 22px}
+.li+.li{border-top:1px solid var(--line2)}
+.li b{font-size:14.5px;font-weight:600}
+.li b i{display:block;font-style:normal;font-size:12px;font-weight:500;color:var(--muted)}
+.li q{color:var(--mid);font-size:15px;line-height:1.5}
+.li span{font-size:13px;color:var(--muted);white-space:nowrap}
+@media(max-width:760px){
+  .lh{display:none}
+  .ln{grid-template-columns:40px 1fr;row-gap:10px;padding:16px 18px}
+  .ln .rd{grid-column:2}.ln .sc{grid-column:1/-1}
+  .ln{grid-template-areas:none}
+  .rd{flex-direction:row;align-items:center;gap:10px}.rd small{display:inline;min-width:96px}
+  .li{grid-template-columns:1fr;gap:4px;padding:14px 18px}
+}
+.chip{font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:99px;white-space:nowrap}
+.cg{background:var(--okbg);color:var(--ok)}.ca{background:var(--warnbg);color:var(--warn)}
+.cr{background:var(--badbg);color:var(--bad)}.co{background:rgba(255,255,255,.05);color:var(--muted);font-weight:500}
+.note{background:var(--panel2);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:16px 18px;
+  font-size:15.5px;color:var(--mid)}
+footer{max-width:1060px;margin:0 auto;padding:0 26px 50px;color:var(--muted);font-size:13.5px}
+@media(max-width:760px){main{padding:26px 18px 70px}.top .in,footer{padding-left:18px;padding-right:18px}}
+
+.status{max-width:1060px;margin:0 auto 22px;padding:12px 18px;border-radius:10px;font-size:14.5px;
+  background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.status.ok{background:var(--okbg);border-color:rgba(87,199,155,.3);color:var(--ok)}
+.status.warn{background:var(--warnbg);border-color:rgba(227,185,95,.3);color:var(--warn)}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="in">
+  <div class="brand"><b>VELERA · SCORING</b><i>CO-TRAINER</i></div>
+  <div class="sp"></div>
+  <div class="tabs">
+    <button class="tb on" id="tabScore">Score</button>
+    <button class="tb" id="tabRes">Results</button>
+  </div>
+  <div class="tot"><b id="tot">&mdash;</b><small>out of 16</small></div>
+</div></div>
+
+<main>
+  <p class="status" id="status">Checking the shared store…</p>
+  <section id="scoring">
+    <div class="card">
+      <div class="bd">
+        <label class="f">Your name</label>
+        <input type="text" id="by" placeholder="So the trainer knows who scored it" autocomplete="off">
+      </div>
+    </div>
+
+    <p class="sect">The team you are roleplaying with</p>
+    <div class="teams" id="teams"></div>
+
+    <div id="rounds"></div>
+  </section>
+
+  <section id="results">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px"><p class="sect" style="margin:0;flex:1">Leaderboard</p><button class="btn2" id="restoreBtn">Restore scores</button><button class="btn" id="copy">Copy results</button></div>
+    <div class="restore" id="restore">
+      <h3>Restore scores<button type="button" id="restoreClose" aria-label="Close">&times;</button></h3>
+      <div class="ro"><div><b>Restore from this device</b><span id="devInfo">Checking&hellip;</span></div>
+        <button class="btn2" id="restoreDev">Restore</button></div>
+      <div class="ro"><div><b>Restore from a backup file</b><span>Choose a file saved with <em>Download backup</em>.</span></div>
+        <button class="btn2" id="restoreFile">Choose file</button></div>
+      <div class="ro"><div><b>Download backup</b><span>Save every score to a file, to keep or to restore later.</span></div>
+        <button class="btn2" id="backup">Download backup</button></div>
+      <p class="rmsg" id="rmsg"></p>
+      <input type="file" id="fileIn" accept=".json,application/json" hidden>
+    </div>
+    <div id="rlist"></div>
+  </section>
+</main>
+
+<footer>Velera Residences is fictional, created for training. Scores are shared live with every device that opens this page.</footer>
+
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i);};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+
+var TEAMS=['Team 1','Team 2','Team 3','Team 4','Team 5','Team 6'];
+
+var ROUNDS=[
+ {n:'1', title:'Permission', who:'N. Sabry \u00b7 Head of Sales',
+  cap:'If he spends the first minute defending the four o\u2019clock deadline, Connection is 0. If he never finds out why she went around him, the call cannot end warm.',
+  el:[
+   {k:'Connection', s:'Did he ask about her?', o:[
+     'Only talked about the rules and the money.',
+     'Asked about her, but defended himself first.',
+     'Found the real reason \u2014 she did not think he was ready.']},
+   {k:'Attitude', s:'How did he take the hard question?', o:[
+     'Argued back, or kept apologising.',
+     'Polite, but tense. Filled the silence.',
+     'Stayed calm, let the silence sit, kept asking.']},
+   {k:'Integrity', s:'What did he promise?', o:[
+     'Nothing clear, or \u201cit won\u2019t happen again\u201d.',
+     'A clear rule, but only between the two of them.',
+     'A clear rule, and he said it in front of her team.']}
+  ]},
+ {n:'2', title:'Production', who:'T. Nabil \u00b7 Sales Operations Manager',
+  cap:'If he asks for more people in the first three minutes, Relationships is 0. If he never says what the week is for, he cannot go above a truce.',
+  el:[
+   {k:'Relationships', s:'Who covers the four days?', o:[
+     'Signed it as it was, or kept asking for more people.',
+     'Talked about the team in general. Moved one person.',
+     'Named the right people and put them where the money is.']},
+   {k:'Vision', s:'What is the week for?', o:[
+     'A slogan, or just the sales target.',
+     'Said something, but T. Nabil could not repeat it.',
+     'T. Nabil repeated it back, and it answered the day-three buyer.']},
+   {k:'Motivation', s:'What about T. Mansour?', o:[
+     'Agreed to replace him.',
+     'Said \u201chave a word with him\u201d.',
+     'Asked why he changed, and offered him something real.']}
+  ]},
+ {n:'3', title:'People development', who:'M. Serry \u00b7 Senior Property Consultant',
+  cap:'Telling him what to click gets one reservation done and leaves him calling for every decision. Staying quiet leaves someone who can run the stand.',
+  el:[
+   {k:'Mentor', s:'Call one \u2014 he shows M. Serry', o:[
+     'Explained it, or did it without saying anything.',
+     'Did one reservation while M. Serry watched.',
+     'Did one and said every step out loud as he went.']},
+   {k:'Monitor', s:'Call two \u2014 M. Serry tries it', o:[
+     'Took the keyboard, or answered straight away.',
+     'Told him what to click, step by step.',
+     'Stayed quiet and let him work it out himself.']}
+  ]}
+];
+
+function endingFor(n,total){
+  if(n==='3') return total>=3?'Confident':(total>=2?'Dependent':'Fragile');
+  return total>=5?'Warm':(total>=3?'Truce':'Awkward');
+}
+function chipClass(e){
+  return (e==='Warm'||e==='Confident')?'cg':((e==='Truce'||e==='Dependent')?'ca':'cr');
+}
+function slug(x){return String(x||'').replace(/[^A-Za-z0-9]+/g,'-').toLowerCase();}
+
+var PICK={}, NOTE={}, SEL='Team 1', SAVED={}, ONLINE=false;
+var LS='velera-scores-v1', LSP='velera-pending-v1', API='api/scores';
+function loadPending(){ try{ return JSON.parse(localStorage.getItem(LSP)||'{}'); }catch(e){ return {}; } }
+function savePending(p){ try{ localStorage.setItem(LSP, JSON.stringify(p)); }catch(e){} }
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LS)||'{}'); }catch(e){ return {}; } }
+var LSA='velera-archive-v1';
+function loadArchive(){ try{ return JSON.parse(localStorage.getItem(LSA)||'{}'); }catch(e){ return {}; } }
+function saveLocal(){
+  try{
+    localStorage.setItem(LS, JSON.stringify(SAVED));
+    var a=loadArchive();
+    Object.keys(SAVED).forEach(function(k){ var v=SAVED[k]; if(v&&(!a[k]||(v.updated||0)>=(a[k].updated||0))) a[k]=v; });
+    localStorage.setItem(LSA, JSON.stringify(a));
+  }catch(e){}
+}
+function status(txt, tone){
+  var el=$('status'); if(!el) return;
+  el.textContent=txt; el.className='status '+(tone||'');
+}
+
+function drawTeams(){
+  $('teams').innerHTML=TEAMS.map(function(t){
+    var done=ROUNDS.filter(function(r){return SAVED[slug(t)+'_r'+r.n];}).length;
+    return '<button type="button" class="team'+(SEL===t?' on':'')+'" data-t="'+esc(t)+'">'
+      +'<b>'+esc(t)+'</b><i>'+done+' of 3 scored</i></button>';
+  }).join('');
+  [].slice.call($('teams').querySelectorAll('.team')).forEach(function(b){
+    b.addEventListener('click',function(){ SEL=b.dataset.t; drawTeams(); drawRounds(); });
+  });
+}
+
+function drawRounds(){
+  ROUNDS.forEach(function(r){
+    var key=slug(SEL)+'_r'+r.n, s=SAVED[key];
+    if(s&&s.vals) s.vals.forEach(function(v,i){ if(PICK[key+'_'+i]==null) PICK[key+'_'+i]=v; });
+  });
+  $('rounds').innerHTML=ROUNDS.map(function(r){
+    var key=slug(SEL)+'_r'+r.n, s=SAVED[key], max=r.el.length*2, n=0, got=0;
+    r.el.forEach(function(_,i){ var v=PICK[key+'_'+i]; if(v!=null){ n+=v; got++; } });
+    var state = got===r.el.length ? (n+' / '+max+' \u00b7 '+endingFor(r.n,n)) : (got?(n+' / '+max):'not scored');
+    return '<div class="card" data-r="'+r.n+'">'
+      +'<header><h3>Round '+r.n+' &nbsp;&middot;&nbsp; '+r.title+'</h3>'
+      +'<span class="pill '+(got===r.el.length?'po':'pw')+'">'+state+'</span></header>'
+      +'<div class="bd" style="padding-bottom:6px"><p class="sect" style="margin:0">'+r.who+'</p></div>'
+      +'<div class="bd" style="padding-top:0">'
+      + r.el.map(function(e,i){
+          return '<div class="el"><div class="elh"><b>'+e.k+'</b><span>'+e.s+'</span></div>'
+            +'<div class="opts" data-i="'+i+'">'
+            + e.o.map(function(txt,v){
+                return '<button type="button" class="opt'+(PICK[key+'_'+i]===v?' on':'')+'" data-v="'+v+'">'
+                  +'<span class="n">'+v+'</span><span>'+txt+'</span></button>';
+              }).join('')
+            +'</div></div>';
+        }).join('')
+      +'<div class="cap"><b>Cap.</b> '+r.cap+'</div>'
+      +'</div>'
+      +'<div class="bd" style="padding-top:0"><label class="f">The moment it turned, in their words</label>'
+      +'<textarea class="note2" placeholder="One line. Worth more to them than the score.">'+esc(NOTE[key]!=null?NOTE[key]:(s&&s.note?s.note:''))+'</textarea></div>'
+      +'<div class="ft"><button class="btn save">'+(s?'Update score':'Submit score')+'</button>'
+      +'<span class="hint msg">'+(s?('Scored by '+esc(s.by||'a co-trainer')+'. Submitting replaces it.'):'Sent to the results tab when you submit.')+'</span></div>'
+      +'</div>';
+  }).join('');
+
+  [].slice.call($('rounds').querySelectorAll('.opt')).forEach(function(b){
+    b.addEventListener('click',function(){
+      var card=b.closest('.card'), key=slug(SEL)+'_r'+card.dataset.r;
+      PICK[key+'_'+b.parentNode.dataset.i]=+b.dataset.v;
+      drawRounds();
+    });
+  });
+  [].slice.call($('rounds').querySelectorAll('.note2')).forEach(function(t){
+    t.addEventListener('input',function(){ NOTE[slug(SEL)+'_r'+t.closest('.card').dataset.r]=t.value; });
+  });
+  [].slice.call($('rounds').querySelectorAll('.save')).forEach(function(b){
+    b.addEventListener('click',function(){ save(b.closest('.card')); });
+  });
+
+  var tot=0, any=false;
+  ROUNDS.forEach(function(r){
+    var key=slug(SEL)+'_r'+r.n;
+    r.el.forEach(function(_,i){ var v=PICK[key+'_'+i]; if(v!=null){ tot+=v; any=true; } });
+  });
+  $('tot').textContent = any?tot:'\u2014';
+}
+
+function save(card){
+  var rn=card.dataset.r, r=ROUNDS.filter(function(x){return x.n===rn;})[0];
+  var key=slug(SEL)+'_r'+rn, msg=card.querySelector('.msg'), vals=[], miss=false;
+  r.el.forEach(function(_,i){ var v=PICK[key+'_'+i]; if(v==null) miss=true; vals.push(v==null?0:v); });
+  if(miss){ msg.innerHTML='<b style="color:var(--bad)">Score every line first.</b>'; return; }
+  var total=vals.reduce(function(a,b){return a+b;},0);
+  var rec={team:SEL, slug:slug(SEL), round:+rn, title:r.title, vals:vals, total:total,
+           max:r.el.length*2, ending:endingFor(rn,total),
+           note:card.querySelector('.note2').value.trim(),
+           by:$('by').value.trim()||'Co-trainer', updated:Date.now()};
+  SAVED[key]=rec; saveLocal(); delete NOTE[key];
+  var pend=loadPending(); pend[key]=rec; savePending(pend);
+  drawTeams(); drawRounds(); drawResults();
+  msg=document.querySelector('.card[data-r="'+rn+'"] .msg');
+  msg.innerHTML='<b style="color:var(--ok)">Saved. Sharing…</b>';
+  push(key, rec).then(function(){
+    msg.innerHTML='<b style="color:var(--ok)">Saved and shared with every device.</b>';
+  }).catch(function(){ online(false);
+    msg.innerHTML='<b style="color:var(--warn)">Saved on this device. It will be shared as soon as the connection is back.</b>';
+  });
+}
+
+function standings(){
+  var map={};
+  TEAMS.forEach(function(t){ map[t]={team:t, rounds:{}, total:0, n:0}; });
+  Object.keys(SAVED).forEach(function(k){
+    var v=SAVED[k]; if(!v||!v.team) return;
+    var t=map[v.team]=map[v.team]||{team:v.team, rounds:{}, total:0, n:0};
+    t.rounds[String(v.round)]=v; t.total+=v.total; t.n++;
+  });
+  var list=Object.keys(map).map(function(k){return map[k];});
+  list.sort(function(a,b){ return (b.n>0)-(a.n>0) || b.total-a.total || b.n-a.n || a.team.localeCompare(b.team,undefined,{numeric:true}); });
+  var rank=0, prev=null;
+  list.forEach(function(t,i){
+    if(!t.n){ t.rank=null; return; }
+    if(!prev||t.total!==prev.total) rank=i+1;
+    t.rank=rank; prev=t;
+  });
+  return list;
+}
+
+function drawResults(){
+  var list=standings(), MAX=ROUNDS.reduce(function(a,r){return a+r.el.length*2;},0);
+  var head='<div class="lh"><span>#</span><span>Team</span>'
+    +ROUNDS.map(function(r){return '<span>R'+r.n+' &middot; '+r.title+'</span>';}).join('')
+    +'<span>Total</span></div>';
+  var rows=list.map(function(t){
+    return '<div class="ln'+(t.rank===1?' lead':'')+(t.n?'':' none')+'">'
+      +'<span class="rk'+(t.rank&&t.rank<=3?' g'+t.rank:'')+'">'+(t.rank||'&ndash;')+'</span>'
+      +'<div class="tm"><b>'+esc(t.team)+'</b><i>'+t.n+' of '+ROUNDS.length+' scored</i></div>'
+      +ROUNDS.map(function(r){
+        var s=t.rounds[r.n];
+        return '<div class="rd"><small>R'+r.n+' &middot; '+r.title+'</small>'
+          +(s?'<span class="chip '+chipClass(s.ending)+'">'+s.total+'/'+s.max+' &middot; '+s.ending+'</span>'
+             :'<span class="chip co">&ndash;</span>')+'</div>';
+      }).join('')
+      +'<div class="sc"><div class="bar"><span style="width:'+Math.round(100*t.total/MAX)+'%"></span></div>'
+      +'<b>'+(t.n?t.total:'&ndash;')+'<em>/'+MAX+'</em></b></div>'
+      +'</div>';
+  }).join('');
+  var notes=[];
+  list.forEach(function(t){ ROUNDS.forEach(function(r){ var s=t.rounds[r.n]; if(s&&s.note) notes.push({t:t,r:r,s:s}); }); });
+  var lines=notes.length
+    ? '<div class="lines">'+notes.map(function(x){
+        return '<div class="li"><b>'+esc(x.t.team)+'<i>R'+x.r.n+' &middot; '+x.r.title+'</i></b>'
+          +'<q>'+esc(x.s.note)+'</q><span>'+esc(x.s.by||'')+'</span></div>';
+      }).join('')+'</div>'
+    : '<div class="note">No notes yet.</div>';
+  $('rlist').innerHTML='<div class="board">'+head+rows+'</div>'
+    +'<p class="sect">The moment it turned</p>'+lines;
+}
+
+$('tabScore').addEventListener('click',function(){
+  this.classList.add('on'); $('tabRes').classList.remove('on');
+  $('scoring').style.display='block'; $('results').style.display='none';
+});
+$('tabRes').addEventListener('click',function(){
+  this.classList.add('on'); $('tabScore').classList.remove('on');
+  $('scoring').style.display='none'; $('results').style.display='block';
+  drawResults();
+});
+
+SAVED=loadLocal();
+drawTeams(); drawRounds();
+$('copy').addEventListener('click',function(){
+  var btn=this, list=standings().filter(function(t){return t.n;}), out=[];
+  var MAX=ROUNDS.reduce(function(a,r){return a+r.el.length*2;},0);
+  list.forEach(function(t){
+    out.push(t.rank+'. '+t.team+'  '+t.total+'/'+MAX+'  |  '+ROUNDS.map(function(r){
+      var s=t.rounds[r.n]; return 'R'+r.n+' '+(s?s.total+'/'+s.max+' '+s.ending:'-');
+    }).join('  |  '));
+  });
+  var notes=[];
+  list.forEach(function(t){ ROUNDS.forEach(function(r){ var s=t.rounds[r.n];
+    if(s&&s.note) notes.push(t.team+'  |  R'+r.n+' '+r.title+'  |  "'+s.note+'"  |  '+(s.by||'')); }); });
+  if(notes.length) out.push('', 'The moment it turned:'), out=out.concat(notes);
+  var txt=list.length?out.join('\n'):'Nothing scored yet.';
+  navigator.clipboard.writeText(txt).then(function(){ btn.textContent='Copied'; setTimeout(function(){btn.textContent='Copy results';},1600); })
+    .catch(function(){ window.prompt('Copy the results:', txt); });
+});
+var OFFLINE='Not connected — scores are kept on this device and will be shared when the connection is back. Use Copy results if needed.';
+
+function push(key, rec){
+  return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)})
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(j){
+      var p=loadPending(); if(p[key]&&p[key].updated===rec.updated){ delete p[key]; savePending(p); }
+      if(j.record){ SAVED[key]=j.record; saveLocal(); }
+      online(true); return j;
+    });
+}
+function online(ok){
+  ONLINE=ok;
+  var n=Object.keys(loadPending()).length;
+  if(ok&&!n) status('Live — scores are shared with every device that opens this page.','ok');
+  else if(ok) status('Live — sending '+n+' saved score'+(n>1?'s':'')+'…','ok');
+  else status(OFFLINE,'warn');
+}
+var pulling=false;
+function pull(){
+  if(pulling) return; pulling=true;
+  fetch(API,{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(j){
+      var next=j.scores||{}, pend=loadPending();
+      Object.keys(pend).forEach(function(k){ next[k]=pend[k]; });
+      var changed=JSON.stringify(next)!==JSON.stringify(SAVED);
+      SAVED=next; saveLocal(); online(true);
+      if(changed) redraw();
+      Object.keys(pend).forEach(function(k){ push(k,pend[k]).catch(function(){}); });
+    })
+    .catch(function(){ online(false); })
+    .then(function(){ pulling=false; });
+}
+function redraw(){
+  drawTeams();
+  var a=document.activeElement;
+  if(!(a&&a.classList&&a.classList.contains('note2'))) drawRounds();
+  if($('results').style.display==='block') drawResults();
+}
+function validRec(v){ return v&&v.team&&v.slug&&v.round&&Array.isArray(v.vals)&&v.vals.length; }
+function missingFromShared(src){
+  return Object.keys(src).filter(function(k){
+    var v=src[k], cur=SAVED[k];
+    return validRec(v) && (!cur || (v.updated||0)>(cur.updated||0));
+  });
+}
+function rmsg(txt,tone){ $('rmsg').innerHTML=txt?'<span style="color:var(--'+(tone||'mid')+')">'+txt+'</span>':''; }
+function drawRestore(){
+  var n=missingFromShared(loadArchive()).length;
+  $('devInfo').textContent = n
+    ? n+' score'+(n>1?'s':'')+' on this device '+(n>1?'are':'is')+' missing from the shared list, or newer.'
+    : 'Everything this device has is already in the shared list.';
+  $('restoreDev').disabled=!n;
+}
+function restoreFrom(src, label){
+  var keys=missingFromShared(src);
+  if(!keys.length){ rmsg('Nothing to restore — the shared list already has all of '+label+'.','ok'); return; }
+  rmsg('Restoring '+keys.length+' score'+(keys.length>1?'s':'')+'…');
+  var pend=loadPending();
+  keys.forEach(function(k){ SAVED[k]=src[k]; pend[k]=src[k]; });
+  savePending(pend); saveLocal(); redraw(); drawResults();
+  Promise.all(keys.map(function(k){ return push(k,src[k]).then(function(){return 1;},function(){return 0;}); }))
+    .then(function(r){
+      var ok=r.reduce(function(a,b){return a+b;},0);
+      if(ok===keys.length) rmsg('Restored '+ok+' score'+(ok>1?'s':'')+'. Every device will see them within a few seconds.','ok');
+      else rmsg('Restored '+ok+' of '+keys.length+'. The rest are saved here and will be sent when the connection is back.','warn');
+      drawRestore(); drawResults();
+    });
+}
+$('restoreBtn').addEventListener('click',function(){
+  $('restore').classList.toggle('open'); rmsg(''); drawRestore();
+});
+$('restoreClose').addEventListener('click',function(){ $('restore').classList.remove('open'); });
+$('restoreDev').addEventListener('click',function(){ restoreFrom(loadArchive(),'this device’s scores'); });
+$('restoreFile').addEventListener('click',function(){ $('fileIn').value=''; $('fileIn').click(); });
+$('fileIn').addEventListener('change',function(){
+  var f=this.files&&this.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var data; try{ data=JSON.parse(rd.result); }catch(e){ rmsg('That file is not a scores backup.','bad'); return; }
+    var src=(data&&data.scores)||data, out={};
+    Object.keys(src||{}).forEach(function(k){ var v=src[k]; if(validRec(v)) out[v.slug+'_r'+v.round]=v; });
+    if(!Object.keys(out).length){ rmsg('No scores found in that file.','bad'); return; }
+    var now=Date.now();
+    Object.keys(out).forEach(function(k){ out[k]=Object.assign({},out[k],{updated:now}); });
+    restoreFrom(out,'the file');
+  };
+  rd.readAsText(f);
+});
+$('backup').addEventListener('click',function(){
+  var all=loadArchive(); Object.keys(SAVED).forEach(function(k){ all[k]=SAVED[k]; });
+  var n=Object.keys(all).length;
+  if(!n){ rmsg('Nothing to back up yet.','warn'); return; }
+  var blob=new Blob([JSON.stringify({app:'velera-scoring',saved:new Date().toISOString(),scores:all},null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='velera-scores-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+  rmsg('Backup downloaded — '+n+' score'+(n>1?'s':'')+'.','ok');
+});
+
+status('Connecting…');
+pull();
+setInterval(function(){ if(!document.hidden) pull(); },4000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) pull(); });
+window.addEventListener('online',pull);
+})();
+</script>
+</body>
+</html>
